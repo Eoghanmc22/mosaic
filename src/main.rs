@@ -6,8 +6,7 @@ use image::{ColorType, GenericImageView, imageops, ImageOutputFormat, RgbaImage}
 
 fn main() -> Result<(), Box<dyn Error>> {
     let mut images = Vec::new();
-    //let mut collector = |path: PathBuf| if !path.file_name().unwrap().to_str().unwrap().contains("result") { images.push(image::open(path).unwrap()) };
-    let mut collector = |path: PathBuf| if !path.file_name().unwrap().to_str().unwrap().contains("result") { images.push(path) };
+    let mut collector = |path: PathBuf| if !path.file_name().unwrap().to_str().unwrap().contains("result") { images.push(image::open(path).unwrap()) };
 
     glob("**/*.png")?.flatten().for_each(&mut collector);
     glob("**/*.jpg")?.flatten().for_each(&mut collector);
@@ -19,8 +18,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         return Err("No images found!".into())
     }
 
-    //let (big_x, big_y) = images.iter().map(|it| it.dimensions()).max().ok_or("No max dim found!")?;
-    let (big_x, big_y) = (1000, 1000);
+    let (big_x, big_y) = images.iter().map(|it| it.dimensions()).max().ok_or("No max dim found!")?;
     let (grid_width, grid_height) = largest_two_factors(images.len()).ok_or("No factors found!")?;
     let extra_space = 15;
 
@@ -33,7 +31,6 @@ fn main() -> Result<(), Box<dyn Error>> {
     for x in 0..grid_width {
         for y in 0..grid_height {
             if let Some(image) = iter.next() {
-                let image = image::open(image)?;
                 let (width, height) = image.dimensions();
                 let (center_x, center_y) = (width as u32 / 2, height as u32 / 2);
                 let (actual_center_x, actual_center_y) = ((big_x + extra_space) * x as u32 + extra_space + big_x / 2, (big_y + extra_space) * y as u32 + extra_space + big_y / 2);
