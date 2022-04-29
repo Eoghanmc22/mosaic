@@ -9,29 +9,38 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut images = Vec::new();
     let mut collector = |path: PathBuf| if !path.file_name().unwrap().to_str().unwrap().contains("result") { images.push(image::open(path).unwrap()) };
 
+    println!("Looking for images");
+
     glob("**/*.png")?.flatten().for_each(&mut collector);
     glob("**/*.jpg")?.flatten().for_each(&mut collector);
     glob("**/*.JPG")?.flatten().for_each(&mut collector);
     glob("**/*.jpeg")?.flatten().for_each(&mut collector);
 
-    println!("{} images found", images.len());
-
-    if images.len() == 0 {
+    if images.len() != 0 {
+        println!("{} images found", images.len());
+    } else {
         return Err("No images found!".into())
     }
+
+    println!("Resizing images");
 
     images.iter_mut().for_each(|image| *image = image.resize(1280, 720, FilterType::Lanczos3));
 
     let (big_x, big_y) = images.iter().map(|it| it.dimensions()).max().ok_or("No max dim found!")?;
+    println!("Max dimensions are ({}, {})", big_x, big_y);
+
     let (grid_width, grid_height) = largest_two_factors(images.len()).ok_or("No factors found!")?;
+    println!("Grid columns: {}, Grid rows: {}", grid_width, grid_height);
     let extra_space = 30;
 
     let (image_width, image_height) = ((big_x + extra_space) * grid_width as u32 + extra_space, (big_y + extra_space) * grid_height as u32 + extra_space);
+    println!("Mosaic dimensions: ({}, {})", image_width, image_height);
 
     let mut output_image = RgbaImage::new(image_width, image_height);
 
-    let mut iter = images.iter();
+    println!("Processing images");
 
+    let mut iter = images.iter();
     for y in 0..grid_height {
         for x in 0..grid_width {
             if let Some(image) = iter.next() {
@@ -45,7 +54,11 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
     }
 
+    println!("Writing mosaic");
+
     image::write_buffer_with_format(&mut File::create("result.png")?, &output_image, image_width, image_height, ColorType::Rgba8, ImageOutputFormat::Jpeg(85))?;
+
+    println!("Complete!");
 
     Ok(())
 }
